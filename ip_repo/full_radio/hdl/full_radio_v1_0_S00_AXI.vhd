@@ -125,6 +125,7 @@ architecture arch_imp of full_radio_v1_0_S00_AXI is
    --
   signal dds_resetn : std_logic;
   signal timer_cnt  : unsigned(31 downto 0) := (others => '0');
+  signal radio_enable : std_logic;
    
    
 COMPONENT dds_compiler_0
@@ -489,6 +490,9 @@ begin
 
   -- bit0 of slv_reg2 is DDS reset (1 = in reset)
   dds_resetn <= not slv_reg2(0);
+  
+  -- bit1 of slv_reg2 is radio enable (1 = stream enabled)
+  radio_enable <= slv_reg2(1);
 
   -- 32-bit free running timer on S_AXI_ACLK
   process (S_AXI_ACLK)
@@ -619,7 +623,9 @@ begin
 
   -- AXIS master outputs from the peripheral
   m_axis_tdata  <= q_sample & i_sample;                     -- Q-left, I-right
-  m_axis_tvalid <= fir2_i_tvalid and fir2_q_tvalid;
+  -- Valid only when both channels are valid AND the enable bit is set.
+  -- Datapath still runs regardless of enable.
+  m_axis_tvalid <= (fir2_i_tvalid and fir2_q_tvalid) and radio_enable;
 
 	-- User logic ends
 
